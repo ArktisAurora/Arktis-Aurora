@@ -207,9 +207,9 @@ A vault page's generated part - its `Namespace`, `Types`, `Maintainer`, `Depends
 Who maintains which code is `Internal/DOCUMENTATION/Engine/Maintainers.axml`.
 
 ## Repositories
-The Arktis folder is three git repositories. The root is `NexerG/Arktis-Aurora` (public): the engine,
+The Arktis folder is three git repositories. The root is `ArktisAurora/Arktis-Aurora` (public): the engine,
 `ArctisImaging`, `AuroraEditor`, `Carbon`, `_Build`, `CLAUDE.md` and `.claude`. `Thorium/` is
-`NexerG/Arktis-Thorium` and `Internal/` is `NexerG/Arktis-Internal` (both private); the root ignores
+`ArktisAurora/Arktis-Thorium` and `Internal/` is `ArktisAurora/Arktis-Internal` (both private); the root ignores
 them. Reach them with `git -C Thorium …` / `git -C Internal …`. `Internal/` holds `DOCUMENTATION/`,
 `TODO.md` and `LINUX.md`.
 

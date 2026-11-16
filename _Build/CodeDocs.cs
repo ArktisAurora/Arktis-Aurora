@@ -427,8 +427,14 @@ namespace _Build
                 if (name == "INDEX" || name == "README") continue;
                 string[] lines = File.ReadAllLines(path);
                 HashSet<string> segments = new HashSet<string>(16, StringComparer.Ordinal);
+                bool superseded = false;
                 for (int i = 0; i < lines.Length; i++)
                 {
+                    if (lines[i].StartsWith("**Status:** SUPERSEDED", StringComparison.Ordinal))
+                    {
+                        superseded = true;
+                        break;
+                    }
                     if (!lines[i].StartsWith("**Scope:**", StringComparison.Ordinal)) continue;
                     for (int j = i; j < lines.Length && lines[j].Trim().Length > 0; j++)
                         foreach (Match m in Backticked.Matches(lines[j]))
@@ -439,7 +445,7 @@ namespace _Build
                         }
                     break;
                 }
-                decisions.Add(new Decision(name, segments));
+                if (!superseded) decisions.Add(new Decision(name, segments));
             }
             Decision[] sorted = decisions.ToArray();
             Array.Sort(sorted, static (a, b) => string.CompareOrdinal(a.Name, b.Name));
