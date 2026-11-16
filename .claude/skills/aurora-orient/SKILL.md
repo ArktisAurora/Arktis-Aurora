@@ -34,6 +34,7 @@ Stop at the first rung that answers. Do not skip to a whole-tree grep.
 | 4 | which file holds the symbol? | `NAMESPACES.md`, `Thorium/NAMESPACES.md` | grep the namespace |
 | 5 | what methods does the class have? | the file | method grep, below |
 | 6 | what does the method do? | the file | `sed -n 'START,ENDp'` |
+| 7 | who calls this, what does it call? | the vault page claiming the file (`grep -rl "Name.cs" Internal/DOCUMENTATION/Engine`) | `sed` its `## Dependencies` — Uses, Used by grouped per system, Named by data |
 
 A row in `INDEX.md` that does not match the task means that note does not need opening. That is what the
 "Settles" column is for.

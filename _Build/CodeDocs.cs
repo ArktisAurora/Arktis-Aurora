@@ -14,6 +14,8 @@ namespace _Build
     internal static class CodeDocs
     {
         const string Marker = "%% generated below: do not edit %%";
+        const string TocOpen = "%% toc %%";
+        const string TocClose = "%% /toc %%";
         const string Vault = "Internal/DOCUMENTATION/";
         const string Crlf = "\r\n";
         static readonly string[] GeneratedKeys = { "Namespace", "Types", "Maintainer", "DependsOn", "UsedBy" };
@@ -122,15 +124,14 @@ namespace _Build
 
             // write
             int written = 0, created = 0, unchanged = 0, changed = 0;
-            string today = DateTime.Today.ToString("yyyy-MM-dd");
             for (int p = 0; p < pages.Count; p++)
             {
                 Page page = pages[p];
                 if (!page.inScope) continue;
                 bool stub = p >= claimingPages;
                 if (stub && check) continue;
-                string text = stub ? StubText(today, page.claims[0]) : page.text;
-                string rendered = Render(text, GenerateKeys(page, pages), GenerateBody(page, pages, files, infos, actionFiles, decisions));
+                string text = stub ? StubText(page.claims[0]) : page.text;
+                string rendered = WithToc(Render(text, GenerateKeys(page, pages), GenerateBody(page, pages, files, infos, actionFiles, decisions)));
                 byte[] bytes = Encode(rendered, page.bom);
                 if (page.original != null && bytes.AsSpan().SequenceEqual(page.original)) { unchanged++; continue; }
                 if (check)
@@ -144,6 +145,32 @@ namespace _Build
                 File.WriteAllBytes(full, bytes);
                 if (stub) created++;
                 else written++;
+            }
+
+            // pages no source file claims: the rest of the vault and the root pages
+            if (only == null)
+            {
+                HashSet<string> claimed = new HashSet<string>(pages.Count, StringComparer.OrdinalIgnoreCase);
+                for (int p = 0; p < pages.Count; p++) claimed.Add(pages[p].path);
+                string[] others = TocPages(root + "Internal\\DOCUMENTATION\\");
+                for (int i = 0; i < others.Length; i++)
+                {
+                    if (claimed.Contains(others[i])) continue;
+                    string full = ToFull(root, Vault + others[i]);
+                    byte[] original = File.ReadAllBytes(full);
+                    bool bom = original.Length >= 3 && original[0] == 0xEF && original[1] == 0xBB && original[2] == 0xBF;
+                    string text = Encoding.UTF8.GetString(original, bom ? 3 : 0, original.Length - (bom ? 3 : 0));
+                    byte[] bytes = Encode(WithToc(text), bom);
+                    if (bytes.AsSpan().SequenceEqual(original)) { unchanged++; continue; }
+                    if (check)
+                    {
+                        Console.Out.WriteLine("CHANGED " + others[i]);
+                        changed++;
+                        continue;
+                    }
+                    File.WriteAllBytes(full, bytes);
+                    written++;
+                }
             }
 
             ReportStale(root, pages, claimingPages);
@@ -560,9 +587,10 @@ namespace _Build
             }
         }
 
-        static string StubText(string date, string file) =>
-            "---" + Crlf + "date: " + date + Crlf + "Kind: File" + Crlf + "Status: Stub" + Crlf + "System:" + Crlf + "SourceFiles:" + Crlf + "  - " + file + Crlf +
-            "cssclasses:" + Crlf + "  - Aurora.css" + Crlf + "---" + Crlf + "## Description" + Crlf + Crlf + Marker + Crlf;
+        static string StubText(string file) =>
+            "---" + Crlf + "Kind: File" + Crlf + "Status: Stub" + Crlf + "System:" + Crlf + "SourceFiles:" + Crlf + "  - " + file + Crlf +
+            "cssclasses:" + Crlf + "  - Aurora.css" + Crlf + "---" + Crlf + "## Description" + Crlf + Crlf + "## How it works" + Crlf + Crlf +
+            "## Limits" + Crlf + Crlf + Marker + Crlf;
 
         static string Render(string text, string keys, string body)
         {
@@ -594,6 +622,106 @@ namespace _Build
             }
             sb.Append(Marker).Append(Crlf).Append(body);
             return sb.ToString();
+        }
+
+        // Replaces the ToC block under the frontmatter and title with one built from the page's two shallowest heading levels.
+        static string WithToc(string text)
+        {
+            List<string> lines = SplitLines(text);
+            int head = ClosingFence(lines) + 1;
+            int top = head;
+            int t = SkipBlank(lines, head);
+            if (t < lines.Count && HeadingLevel(Bare(lines[t])) == 1) top = t + 1;
+            int body = top;
+            int b = SkipBlank(lines, top);
+            if (b < lines.Count && Bare(lines[b]).TrimEnd() == TocOpen)
+            {
+                int end = b + 1;
+                while (end < lines.Count && Bare(lines[end]).TrimEnd() != TocClose) end++;
+                if (end < lines.Count) body = SkipBlank(lines, end + 1);
+            }
+
+            int shallowest = 7;
+            bool fenced = false;
+            for (int i = body; i < lines.Count; i++)
+            {
+                string bare = Bare(lines[i]);
+                if (IsFence(bare)) fenced = !fenced;
+                int level = fenced ? 0 : HeadingLevel(bare);
+                if (level > 0 && level < shallowest) shallowest = level;
+            }
+            StringBuilder toc = new StringBuilder(1024);
+            fenced = false;
+            for (int i = body; i < lines.Count; i++)
+            {
+                string bare = Bare(lines[i]);
+                if (IsFence(bare)) fenced = !fenced;
+                int level = fenced ? 0 : HeadingLevel(bare);
+                if (level != shallowest && level != shallowest + 1) continue;
+                if (level > shallowest) toc.Append('\t');
+                toc.Append("- [[#").Append(HeadingTarget(bare.Substring(level + 1))).Append("]]").Append(Crlf);
+            }
+
+            StringBuilder sb = new StringBuilder(text.Length + toc.Length + 32);
+            for (int i = 0; i < top; i++) sb.Append(lines[i]);
+            if (toc.Length > 0)
+            {
+                if (top > head) sb.Append(Crlf);
+                sb.Append(TocOpen).Append(Crlf).Append(toc).Append(TocClose).Append(Crlf).Append(Crlf);
+                body = SkipBlank(lines, body);
+            }
+            else if (body > top && top > head) sb.Append(Crlf);
+            for (int i = body; i < lines.Count; i++) sb.Append(lines[i]);
+            return sb.ToString();
+        }
+
+        static int HeadingLevel(string bare)
+        {
+            int level = 0;
+            while (level < bare.Length && bare[level] == '#') level++;
+            return level is > 0 and < 7 && level < bare.Length && bare[level] == ' ' ? level : 0;
+        }
+
+        static int SkipBlank(List<string> lines, int from)
+        {
+            while (from < lines.Count && Bare(lines[from]).Trim().Length == 0) from++;
+            return from;
+        }
+
+        static bool IsFence(string bare)
+        {
+            string trimmed = bare.TrimStart();
+            return trimmed.StartsWith("```", StringComparison.Ordinal) || trimmed.StartsWith("~~~", StringComparison.Ordinal);
+        }
+
+        // Heading text as an Obsidian heading link accepts it.
+        static string HeadingTarget(string heading)
+        {
+            StringBuilder sb = new StringBuilder(heading.Length);
+            string text = heading.Replace("[[", "").Replace("]]", "");
+            for (int i = 0; i < text.Length; i++)
+            {
+                char c = text[i] is '|' or '#' or '^' or ':' ? ' ' : text[i];
+                if (c == ' ' && (sb.Length == 0 || sb[sb.Length - 1] == ' ')) continue;
+                sb.Append(c);
+            }
+            return sb.ToString().TrimEnd();
+        }
+
+        // Vault-relative paths of the root pages and every page under Engine, Extras and Specs.
+        static string[] TocPages(string docs)
+        {
+            string[] top = Directory.GetFiles(docs, "*.md", SearchOption.TopDirectoryOnly);
+            string[] engine = Directory.GetFiles(docs + "Engine", "*.md", SearchOption.AllDirectories);
+            string[] extras = Directory.GetFiles(docs + "Extras", "*.md", SearchOption.AllDirectories);
+            string[] specs = Directory.GetFiles(docs + "Specs", "*.md", SearchOption.AllDirectories);
+            string[] all = new string[top.Length + engine.Length + extras.Length + specs.Length];
+            top.CopyTo(all, 0);
+            engine.CopyTo(all, top.Length);
+            extras.CopyTo(all, top.Length + engine.Length);
+            specs.CopyTo(all, top.Length + engine.Length + extras.Length);
+            for (int i = 0; i < all.Length; i++) all[i] = all[i].Substring(docs.Length).Replace('\\', '/');
+            return all;
         }
 
         static string GenerateKeys(Page page, List<Page> pages)
@@ -642,14 +770,23 @@ namespace _Build
             {
                 int c = string.CompareOrdinal(a.Here, b.Here);
                 if (c == 0) c = string.CompareOrdinal(pages[a.Page].name, pages[b.Page].name);
+                if (c == 0) c = a.Page.CompareTo(b.Page);
                 return c != 0 ? c : string.CompareOrdinal(a.There, b.There);
             });
             if (uses.Length == 0) sb.Append("None.").Append(Crlf);
             else
             {
-                sb.Append("| Here | Uses | Page |").Append(Crlf).Append("| --- | --- | --- |").Append(Crlf);
-                for (int i = 0; i < uses.Length; i++)
-                    sb.Append("| `").Append(uses[i].Here).Append("` | `").Append(uses[i].There).Append("` | [[").Append(pages[uses[i].Page].name).Append("]] |").Append(Crlf);
+                sb.Append("| Here | Page | Uses |").Append(Crlf).Append("| --- | --- | --- |").Append(Crlf);
+                string[] there = new string[uses.Length];
+                for (int i = 0; i < uses.Length; i++) there[i] = uses[i].There;
+                for (int start = 0, end; start < uses.Length; start = end)
+                {
+                    end = start + 1;
+                    while (end < uses.Length && uses[end].Page == uses[start].Page && uses[end].Here == uses[start].Here) end++;
+                    sb.Append("| `").Append(uses[start].Here).Append("` | [[").Append(pages[uses[start].Page].name).Append("]] | ");
+                    AppendMembers(sb, there, start, end);
+                    sb.Append(" |").Append(Crlf);
+                }
             }
 
             sb.Append(Crlf).Append("### Used by").Append(Crlf).Append(Crlf);
@@ -661,20 +798,27 @@ namespace _Build
                 string[] members = new string[pair.Value.Count];
                 pair.Value.CopyTo(members);
                 Array.Sort(members, string.CompareOrdinal);
-                string system = string.Join(", ", user.system.Count > 0 ? user.system : user.namespaces);
-                usedBy[n++] = new UsedByRow(system, user.name, "`" + string.Join("`, `", members) + "`");
+                string system = user.system.Count == 0 ? "" : "[[" + string.Join("]], [[", user.system) + "]]";
+                usedBy[n++] = new UsedByRow(system, user.name, members);
             }
             Array.Sort(usedBy, static (a, b) =>
             {
-                int c = string.CompareOrdinal(a.System, b.System);
+                int c = (a.System.Length == 0).CompareTo(b.System.Length == 0);
+                if (c == 0) c = string.CompareOrdinal(a.System, b.System);
                 return c != 0 ? c : string.CompareOrdinal(a.Page, b.Page);
             });
             if (usedBy.Length == 0) sb.Append("None.").Append(Crlf);
-            else
+            for (int i = 0; i < usedBy.Length; i++)
             {
-                sb.Append("| System | Page | Uses here |").Append(Crlf).Append("| --- | --- | --- |").Append(Crlf);
-                for (int i = 0; i < usedBy.Length; i++)
-                    sb.Append("| ").Append(usedBy[i].System).Append(" | [[").Append(usedBy[i].Page).Append("]] | ").Append(usedBy[i].Members).Append(" |").Append(Crlf);
+                if (i == 0 || usedBy[i].System != usedBy[i - 1].System)
+                {
+                    if (i > 0) sb.Append(Crlf);
+                    sb.Append("#### ").Append(usedBy[i].System.Length == 0 ? "No system" : usedBy[i].System).Append(Crlf).Append(Crlf);
+                    sb.Append("| Page | Uses here |").Append(Crlf).Append("| --- | --- |").Append(Crlf);
+                }
+                sb.Append("| [[").Append(usedBy[i].Page).Append("]] | ");
+                AppendMembers(sb, usedBy[i].Members, 0, usedBy[i].Members.Length);
+                sb.Append(" |").Append(Crlf);
             }
 
             sb.Append(Crlf).Append("### Named by data").Append(Crlf).Append(Crlf);
@@ -720,6 +864,30 @@ namespace _Build
             }
             if (listed == 0) sb.Append("None.").Append(Crlf);
             return sb.ToString();
+        }
+
+        // Appends ordinally sorted member names, leaving out a type whose member or constructor is also listed.
+        static void AppendMembers(StringBuilder sb, string[] members, int from, int to)
+        {
+            bool first = true;
+            for (int i = from; i < to; i++)
+            {
+                if (IsCoveredByMember(members, from, to, i)) continue;
+                if (!first) sb.Append(", ");
+                sb.Append('`').Append(members[i]).Append('`');
+                first = false;
+            }
+        }
+
+        static bool IsCoveredByMember(string[] members, int from, int to, int i)
+        {
+            string member = members[i];
+            if (i + 1 < to)
+            {
+                string next = members[i + 1];
+                if (next.Length > member.Length && next[member.Length] == '.' && next.StartsWith(member, StringComparison.Ordinal)) return true;
+            }
+            return Array.BinarySearch(members, from, to - from, "new " + member + "()", StringComparer.Ordinal) >= 0;
         }
         #endregion
 
@@ -895,7 +1063,7 @@ namespace _Build
         readonly record struct Edge(int From, string Here, int To, string There);
         readonly record struct ActionRef(string Name, string Category);
         readonly record struct UseRow(string Here, string There, int Page);
-        readonly record struct UsedByRow(string System, string Page, string Members);
+        readonly record struct UsedByRow(string System, string Page, string[] Members);
         readonly record struct DataRow(string Action, string Category, string File);
         readonly record struct Decision(string Name, HashSet<string> Segments);
         readonly record struct Maintainer(Regex Glob, string Name);
@@ -1031,7 +1199,8 @@ namespace _Build
                         return type.TypeKind == TypeKind.Error || type.IsTupleType || type.IsAnonymousType ? null : type.OriginalDefinition;
                     case IFieldSymbol or IPropertySymbol or IEventSymbol:
                         INamedTypeSymbol? owner = symbol.ContainingType;
-                        return owner == null || owner.IsTupleType || owner.IsAnonymousType ? null : symbol.OriginalDefinition;
+                        if (owner == null || owner.IsTupleType || owner.IsAnonymousType) return null;
+                        return owner.TypeKind == TypeKind.Enum ? owner.OriginalDefinition : symbol.OriginalDefinition;
                 }
                 return null;
             }
@@ -1060,12 +1229,13 @@ namespace _Build
                     case null:
                         return "";
                     case INamedTypeSymbol type:
-                        return type.ContainingType == null ? type.Name : NameOf(type.ContainingType) + "." + type.Name;
+                        string name = IsAttribute(type) ? type.Name.Substring(0, type.Name.Length - "Attribute".Length) : type.Name;
+                        return type.ContainingType == null ? name : NameOf(type.ContainingType) + "." + name;
                     case IMethodSymbol method:
                         switch (method.MethodKind)
                         {
                             case MethodKind.Constructor or MethodKind.StaticConstructor:
-                                return NameOf(method.ContainingType) + "..ctor";
+                                return "new " + NameOf(method.ContainingType) + "()";
                             case MethodKind.PropertyGet or MethodKind.PropertySet or MethodKind.EventAdd or MethodKind.EventRemove or MethodKind.EventRaise:
                                 return NameOf(method.AssociatedSymbol);
                             case MethodKind.LocalFunction or MethodKind.AnonymousFunction:
@@ -1074,6 +1244,14 @@ namespace _Build
                         break;
                 }
                 return symbol.ContainingType == null ? symbol.Name : NameOf(symbol.ContainingType) + "." + symbol.Name;
+            }
+
+            static bool IsAttribute(INamedTypeSymbol type)
+            {
+                if (!type.Name.EndsWith("Attribute", StringComparison.Ordinal) || type.Name.Length == "Attribute".Length) return false;
+                for (INamedTypeSymbol? baseType = type.BaseType; baseType != null; baseType = baseType.BaseType)
+                    if (baseType.Name == "Attribute" && baseType.ContainingNamespace?.Name == "System" && baseType.ContainingNamespace.ContainingNamespace?.IsGlobalNamespace == true) return true;
+                return false;
             }
         }
         #endregion

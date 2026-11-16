@@ -98,7 +98,7 @@ From `ClaudeMemory/Mistakes/obsidian-doc-style.md`:
 1. **One logical line = one physical line.** Never hard-wrap a paragraph, list item or blockquote.
 2. **Method and function bodies are pseudocode**, one step per line, real tab indentation for nested
    for-each/if. No `;`-separated step lists, no prose describing the steps. Model: `XSDGenerator.md`,
-   `Atlas Meta Data.md`.
+   `Aurora Font.md`.
 
 These apply only to the vault.
 
@@ -106,15 +106,22 @@ These apply only to the vault.
 
 `Engine/Attributes & Conventions.md` → "Page format" is the rule. In short:
 
-- **Hand part:** frontmatter `Kind`, `Status`, `System`, `SourceFiles`, `VerifiedAgainst`, `tags`, `Linker`; sections
-  `## Description`, `## API summary`, `## How it works`, `## Data and XML`, `## Limits`, `## Related`, in that order,
-  each only when it has content.
+- **Hand part:** frontmatter `Kind`, `Status`, `System`, `SourceFiles`, `VerifiedAgainst`, optional `tags`, `Linker`,
+  `cssclasses`, `Spec`; never `date:`. Sections `## Description`, `## How it works`, `## Data and XML`, `## Limits`, in
+  that order, each only when it has content, and no other `##` above the marker: a topic of its own is a `###` under
+  one of them, and related pages are one `Related:` line closing the Description. Only `IMAGING.md` keeps a
+  `## Speed` (below).
+- **`Status:`** is `Stub`, `Draft`, `Current` or `Stale`; nothing else.
+- **`System:` is never empty** on a page that claims code. A system page names itself.
 - **Generated part — never edit:** frontmatter `Namespace`, `Types`, `Maintainer`, `DependsOn`, `UsedBy`, and everything
   from `%% generated below: do not edit %%` to the end of the page. `_Build/codedocs.sh` writes it.
+- **Table of contents — never edit:** the `%% toc %%` … `%% /toc %%` block under the frontmatter, on every vault and
+  root page. `_Build/codedocs.sh` rebuilds it from the page's headings; a new page gets one on the next run.
 - **A `.cs` file is claimed by exactly one page.** A new file: add its repo-relative path to that page's `SourceFiles:`
   list, or leave it for the generator, which makes a `Status: Stub` page. A moved or renamed file: fix the path in
   the page that claims it. A deleted file: remove its entry, and delete a stub left claiming nothing.
-- Giving a stub its first hand-written content: fill `## Description`, set `System:`, change `Status: Stub` to `Draft`.
+- Giving a stub its first hand-written content: fill the empty headings it was generated with (drop any still empty),
+  change `Status: Stub` to `Draft`.
 - No signature dumps: no field lists, no helper lists.
 
 ## Codec speed

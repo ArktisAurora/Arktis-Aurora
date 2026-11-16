@@ -68,8 +68,11 @@ scribe per write-up.
 
 After the scribe returns: `_Build/codedocs.sh`, then `_Build/codedocs.sh --check`, which must exit 0. It rewrites
 each page's generated part — the `Namespace`, `Types`, `Maintainer`, `DependsOn`, `UsedBy` keys and everything under
-`%% generated below: do not edit %%` — and makes a `Status: Stub` page for a file nothing claims. An unclaimed-file
-or double-claim line is fixed in a page's `SourceFiles:` list, never in the generated part.
+`%% generated below: do not edit %%` — rewrites the `%% toc %%` … `%% /toc %%` table of contents under the
+frontmatter of every vault and root page from its headings, and makes a `Status: Stub` page for a file nothing claims. An unclaimed-file
+or double-claim line is fixed in a page's `SourceFiles:` list, never in the generated part. A stub it just made has an
+empty `System:`: set it here with an `Edit` (the system its neighbours in that folder name), then run `codedocs.sh` once
+more so the Used by tables group it under that system rather than `No system`.
 
 ## 4. Check what came back
 
@@ -78,6 +81,7 @@ Its report is not evidence (CLAUDE.md §8).
 - `git -C Internal diff --stat -- DOCUMENTATION`, then `git -C Internal diff -- DOCUMENTATION` on the files that matter.
 - Each `GAP` or `CONFLICT` line in the report: answer it with an `Edit` here, or tell the user.
 - Read the vault prose for voice; Sonnet's vault prose can need a sentence fixed.
-- No hunk in a vault page's diff sits below its `%% generated below: do not edit %%` marker unless `codedocs` wrote it.
+- No hunk in a vault page's diff sits below its `%% generated below: do not edit %%` marker or inside its `%% toc %%`
+  block unless `codedocs` wrote it.
 - The verification word in the WIP / Changelog entry matches the brief exactly.
 - A WIP / Changelog change has its twin in `D:\Repositories\ThoriumNotes\*.planner.axml`.
