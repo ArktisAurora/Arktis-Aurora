@@ -13,7 +13,7 @@ namespace ArctisAurora.Core.Filing.Serialization
         private static readonly Diagnostics.LogChannel Log = Diagnostics.LogChannel.For("Assets");
 
         // Bump to invalidate every stamp and force a re-bake.
-        private const int importerVersion = 10;
+        private const int importerVersion = 11;
 
         [A_XSDActionDependency("AssetImporter.RunImports", "Bootstrap")]
         public static bool RunImports()
@@ -350,6 +350,7 @@ namespace ArctisAurora.Core.Filing.Serialization
             string variantNames, int glyphSize, string outputRoot)
         {
             Directory.CreateDirectory(Path.Combine(outputRoot, baseName));
+            characters = "\0" + characters;
 
             AuroraFont[] faces = new AuroraFont[paths.Length];
             Diagnostics.Profiling.Zone.Start("Atlas.ReadFaces");

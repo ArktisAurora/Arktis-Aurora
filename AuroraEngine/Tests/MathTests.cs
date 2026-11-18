@@ -51,7 +51,8 @@ namespace ArctisAurora.Tests
                 chars.AddRange(new[] { set.top, set.ext, set.bottom });
             chars.AddRange("√⎷′−∗");
 
-            string missing = new string(chars.Where(c => c != '\0' && atlas.GetGlyph(c) == null).Distinct().ToArray());
+            int notdef = atlas.GetIndexOfChar('\0');
+            string missing = new string(chars.Where(c => c != '\0' && atlas.GetIndexOfChar(c) == notdef).Distinct().ToArray());
             t.Check(missing.Length == 0, $"every symbol is in the Math charset (missing {missing.Length})");
             yield break;
         }

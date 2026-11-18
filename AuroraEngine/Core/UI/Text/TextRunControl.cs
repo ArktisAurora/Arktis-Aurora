@@ -176,6 +176,7 @@ namespace ArctisAurora.Core.UI.Text
             public bool underline;
             public bool strike;
             public bool link;
+            public bool code;
         }
 
         // a picture, sheet or formula run's object
@@ -425,7 +426,8 @@ namespace ArctisAurora.Core.UI.Text
                     highlight = spans[i].highlightHex == null ? 0u : Palettes.Inline(spans[i].highlightHex),
                     underline = spans[i].underline || spans[i].link != null,
                     strike = spans[i].strikethrough,
-                    link = spans[i].link != null && spans[i].colorHex == null
+                    link = spans[i].link != null && spans[i].colorHex == null,
+                    code = spans[i].stylingType == TextStyleType.Code
                 };
                 start += count;
             }
@@ -795,7 +797,8 @@ namespace ArctisAurora.Core.UI.Text
                     uint effect = runStyle.effect;
                     float stagger = Effects.Stagger(effect);
                     bool underline = runStyle.underline, strike = runStyle.strike;
-                    uint highlight = runStyle.highlight;
+                    uint highlight = runStyle.highlight != 0 ? runStyle.highlight
+                        : runStyle.code ? Palettes.Surface(palette ?? Palettes.Default, PaletteRole.SubField) : 0u;
                     float segmentX = pen;
 
                     if (run.picture)

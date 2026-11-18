@@ -2,8 +2,8 @@
 		   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 		   xsi:schemaLocation="http://arctisaurora/AuroraAssetRegistryTypes ../Schemas/AssetRegistryTypeSchema.xsd">
 
-	<Charset Name="Latin" Chars=" !&quot;#$%&amp;'()*+,-./0123456789:;&lt;=&gt;?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~ĄČĘĖĮŠŲŪŽąčęėįšųūž›€"/>
-	<Charset Name="Math" Chars=" !&quot;#$%&amp;'()*+,-./0123456789:;&lt;=&gt;?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩαβγδεζηθικλμνξοπρςστυφχψωϑϕϖϱϵ⎛⎜⎝⎞⎟⎠⎡⎢⎣⎤⎥⎦⎧⎨⎩⎪⎫⎬⎭⎮←↑→↓↔↕ℂℕℙℚℝℤℏℓ℘ℑℜℵ±×÷·¬−∓∗∘∙√∝∞∠∣∥∧∨∩∪∫∬∭∮∴∵∼≃≅≈≠≡≤≥≪≫≺≻⊂⊃⊆⊇⊕⊖⊗⊘⊙⊢⊤⊥⋅⋆⋮⋯⋱∀∂∃∄∅∇∈∉∋∏∐∑⋀⋁⋂⋃…′″↦⇐⇑⇒⇓⇔⟵⟶⟷⟸⟹⟺⟼⟨⟩⌈⌉⌊⌋‖⌠⌡⎷ˆ˜˙¨¯´ˇ˘⃗□"/>
+	<Charset Name="Latin" Chars=" !&quot;#$%&amp;'()*+,-./0123456789:;&lt;=&gt;?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~ĄČĘĖĮŠŲŪŽąčęėįšųūž›€—"/>
+	<Charset Name="Math" Chars=" !&quot;#$%&amp;'()*+,-./0123456789:;&lt;=&gt;?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩαβγδεζηθικλμνξοπρςστυφχψωϑϕϖϱϵ⎛⎜⎝⎞⎟⎠⎡⎢⎣⎤⎥⎦⎧⎨⎩⎪⎫⎬⎭⎮←↑→↓↔↕ℂℕℙℚℝℤℏℓ℘ℑℜℵ±×÷·¬−∓∗∘∙√∝∞∠∣∥∧∨∩∪∫∬∭∮∴∵∼≃≅≈≠≡≤≥≪≫≺≻⊂⊃⊆⊇⊕⊖⊗⊘⊙⊢⊤⊥⋅⋆⋮⋯⋱∀∂∃∄∅∇∈∉∋∏∐∑⋀⋁⋂⋃…′″↦⇐⇑⇒⇓⇔⟵⟶⟷⟸⟹⟺⟼⟨⟩⌈⌉⌊⌋‖⌠⌡⎷ˆ˜˙¨¯´ˇ˘⃗□—"/>
 	<Charset Name="Latex" Chars=" !&quot;#$%&amp;&apos;()*+,-./0123456789:;&lt;=&gt;?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~&#160;¡¢£¤¥¦§¨©ª«¬®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿĀāĂăĄąĆćĈĉĊċČčĎďĐđĒēĔĕĖėĘęĚěĜĝĞğĠġĢģĤĥĦħĨĩĪīĬĭĮįİıĲĳĴĵĶķĸĹĺĻļĽľĿŀŁłŃńŅņŇňŉŊŋŌōŎŏŐőŒœŔŕŖŗŘřŚśŜŝŞşŠšŢţŤťŦŧŨũŪūŬŭŮůŰűŲųŴŵŶŷŸŹźŻżŽžſȷˆˇ˘˙˚˛˜˝–—‘’‚“”„†‡•…‰‹›€ﬀﬁﬂﬃﬄ"/>
 
 	<!-- language packs, joined by commas in an import's Charset -->

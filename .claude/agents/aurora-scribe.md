@@ -52,6 +52,10 @@ and never restates it.
 | `Work in Progress List.md` | open work | the user, tracking | one dense entry; open work only |
 | `Changelog.md` | what landed, when, verified how | the user, history | landed WIP entries, verbatim, appended, dated |
 
+**Every code mention is code-formatted, in every destination.** A type, member, method, field, enum value,
+key name, XML element or attribute, file name or namespace sits in backticks; anything longer than one line
+sits in a fenced block. Never a bare `LayoutDirty` or `Tween(target, to)` in prose.
+
 The brief says which destinations this change gets. Do not add ones it did not name; report if one looks
 missing (a landed system with no `where-things-live.md` row, a `UI` component change with no
 `ui-orientation.md` update).

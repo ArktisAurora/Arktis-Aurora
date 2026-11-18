@@ -30,6 +30,24 @@ namespace ArctisAurora.Tests
             yield break;
         }
 
+        [A_XSDActionDependency("Fonts.MissingGlyphIsNotdef", "Test")]
+        private static IEnumerator<int> MissingGlyphIsNotdef(TestContext t)
+        {
+            foreach (string name in new[] { "arial", "cambria" })
+            {
+                AtlasMetaData atlas = new AtlasMetaData();
+                Serializer.DeserializeAttributed(Paths.Font(name, name + ".agd"), ref atlas);
+                atlas.BuildCharIndex();
+
+                int notdef = atlas.GetIndexOfChar('\0');
+                GlyphMetrics box = atlas.GetGlyph('一').regular;
+                t.Check(notdef >= 0 && atlas.GetIndexOfChar('一') == notdef && box.xMax > box.xMin,
+                    $"{name}: an unimported char draws the inked .notdef box");
+                t.Check(atlas.GetIndexOfChar('—') != notdef, $"{name}: the em dash is baked");
+            }
+            yield break;
+        }
+
         private static readonly Dictionary<string, byte[]> cffOps = new Dictionary<string, byte[]>
         {
             ["hstemhm"] = new byte[] { 18 }, ["hintmask"] = new byte[] { 19 }, ["rmoveto"] = new byte[] { 21 },

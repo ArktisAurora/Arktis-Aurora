@@ -139,7 +139,7 @@ namespace ArctisAurora.Tests
             AtlasMetaData atlas = new AtlasMetaData();
             Serializer.DeserializeAttributed(Path.Combine(root, "arial", "arial.agd"), ref atlas);
             string chars = new string(atlas.chars);
-            t.Check(chars == "ABαβ", $"the packs join in order and only the characters Arial maps are baked (got '{chars}')");
+            t.Check(chars == "\0ABαβ",$"the packs join in order and only the characters Arial maps are baked (got '{chars}')");
         }
 
         [A_XSDActionDependency("Fonts.Previews", "Test")]

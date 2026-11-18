@@ -125,7 +125,7 @@ Traps:
 - **A throwaway golden lives twice.** The build copies `Data` into `bin/…/Data`, and a rebuild does not delete the
   copy; remove a throwaway PNG (or suite) from both, or the next run still finds it.
 - **Only the primary window is read back.** A shot of a menu or torn-off tab window is not possible yet.
-- **Glyphs the UI font lacks draw as blanks** (`Δ`, `—`) — keep test and failure text ASCII if Carbon should show it.
+- **Glyphs the UI font lacks draw as the .notdef box** (`Δ`) — keep test and failure text ASCII if Carbon should show it.
 - **Changing the runner itself?** Write throwaway tests that fail each way — false check, exception, timeout, logged
   error, unknown name — run them, then delete them. A runner that passes everything is the failure to rule out.
 

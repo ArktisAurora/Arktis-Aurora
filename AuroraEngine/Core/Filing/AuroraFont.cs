@@ -201,7 +201,7 @@ namespace ArctisAurora.Core.Filing
                 for (int i = 0; i < fontData.textData.characterCount; i++)
                 {
                     char character = fontData.textData.characters[i];
-                    ushort glyphIndex = GetGlyphIndex(character, reader, cmap);
+                    ushort glyphIndex = character == '\0' ? (ushort)0 : GetGlyphIndex(character, reader, cmap);
                     Glyph glyph = cff
                         ? GetCffGlyph(glyphIndex, cffData, unitsPerEm)
                         : GetGlyphOutline(glyphIndex, glyphOffsets, glyf, reader, unitsPerEm);
@@ -256,7 +256,7 @@ namespace ArctisAurora.Core.Filing
                 for (int i = 0; i < faceGlyphs.Length; i++)
                 {
                     char character = fontData.textData.characters[i];
-                    ushort glyphIndex = GetGlyphIndex(character, reader, cmap);
+                    ushort glyphIndex = character == '\0' ? (ushort)0 : GetGlyphIndex(character, reader, cmap);
                     faceGlyphs[i].regular.advanceWidth = (float)advanceWidth[glyphIndex] / unitsPerEm;
                     faceGlyphs[i].regular.leftSideOffset = (float)lsb[glyphIndex] / unitsPerEm;
                     if(faceGlyphs[i].regular.yMin < 0)
@@ -618,6 +618,10 @@ namespace ArctisAurora.Core.Filing
         private Dictionary<char, int> charIndex = null!;
         private static readonly CharHash charHash = new CharHash();
 
+        // index of the baked .notdef box ('\0') that unimported chars draw as, -1 for a bake without one
+        [NonSerializable]
+        private int notdefIndex = -1;
+
         // em advances of the chars below AdvanceTableSize, one row per face, built on load
         public const int AdvanceTableSize = 256;
         [NonSerializable]
@@ -732,6 +736,7 @@ namespace ArctisAurora.Core.Filing
                 charIndex.TryAdd(chars[i], i);
                 glyphs[i].index = i;
             }
+            notdefIndex = charIndex.GetValueOrDefault('\0', -1);
 
             variants = new string(variantNames).Split('\n');
             slots = new int[variants.Length * 4];
@@ -779,29 +784,17 @@ namespace ArctisAurora.Core.Filing
 
         public Glyph GetGlyph(char character)
         {
-            if (charIndex.TryGetValue(character, out int index))
-            {
-                return glyphs[index];
-            }
-            return null; // or throw an exception if preferred
+            int index = GetIndexOfChar(character);
+            return index >= 0 ? glyphs[index] : null;
         }
 
         public (Glyph, int) GetGlyphAndIndex(char character)
         {
-            if (charIndex.TryGetValue(character, out int index))
-            {
-                return (glyphs[index], index);
-            }
-            return (null, -1); // or throw an exception if preferred
+            int index = GetIndexOfChar(character);
+            return index >= 0 ? (glyphs[index], index) : (null, -1);
         }
 
-        public int GetIndexOfChar(char character)
-        {
-            if (charIndex.TryGetValue(character, out int index))
-            {
-                return index;
-            }
-            return -1; // or throw an exception if preferred
-        }
+        // The char's glyph index, the .notdef box's for an unimported char, -1 when the bake has neither.
+        public int GetIndexOfChar(char character) => charIndex.TryGetValue(character, out int index) ? index : notdefIndex;
     }
 }
