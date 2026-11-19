@@ -18,6 +18,8 @@ namespace _Build
         const string TocClose = "%% /toc %%";
         const string Vault = "Internal/DOCUMENTATION/";
         const string Crlf = "\r\n";
+        const string SpecIndexPage = "Spec/INDEX.md";
+        static readonly Regex WikiLink = new Regex("\\[\\[([^\\]#|]*)", RegexOptions.Compiled);
         static readonly string[] GeneratedKeys = { "Namespace", "Types", "Maintainer", "DependsOn", "UsedBy" };
         static readonly Regex ActionAttribute = new Regex("\\bAction=\"([^\"]*)\"", RegexOptions.Compiled);
         static readonly Regex Backticked = new Regex("`([^`]+)`", RegexOptions.Compiled);
@@ -152,7 +154,8 @@ namespace _Build
             {
                 HashSet<string> claimed = new HashSet<string>(pages.Count, StringComparer.OrdinalIgnoreCase);
                 for (int p = 0; p < pages.Count; p++) claimed.Add(pages[p].path);
-                string[] others = TocPages(root + "Internal\\DOCUMENTATION\\");
+                string docs = root + "Internal\\DOCUMENTATION\\";
+                string[] others = TocPages(docs);
                 for (int i = 0; i < others.Length; i++)
                 {
                     if (claimed.Contains(others[i])) continue;
@@ -160,6 +163,7 @@ namespace _Build
                     byte[] original = File.ReadAllBytes(full);
                     bool bom = original.Length >= 3 && original[0] == 0xEF && original[1] == 0xBB && original[2] == 0xBF;
                     string text = Encoding.UTF8.GetString(original, bom ? 3 : 0, original.Length - (bom ? 3 : 0));
+                    if (others[i] == SpecIndexPage) text = WithSpecIndex(docs, text);
                     byte[] bytes = Encode(WithToc(text), bom);
                     if (bytes.AsSpan().SequenceEqual(original)) { unchanged++; continue; }
                     if (check)
@@ -714,13 +718,13 @@ namespace _Build
             return sb.ToString().TrimEnd();
         }
 
-        // Vault-relative paths of the root pages and every page under Engine, Extras and Specs.
+        // Vault-relative paths of the root pages and every page under Engine, Extras and Spec.
         static string[] TocPages(string docs)
         {
             string[] top = Directory.GetFiles(docs, "*.md", SearchOption.TopDirectoryOnly);
             string[] engine = Directory.GetFiles(docs + "Engine", "*.md", SearchOption.AllDirectories);
             string[] extras = Directory.GetFiles(docs + "Extras", "*.md", SearchOption.AllDirectories);
-            string[] specs = Directory.GetFiles(docs + "Specs", "*.md", SearchOption.AllDirectories);
+            string[] specs = Directory.GetFiles(docs + "Spec", "*.md", SearchOption.AllDirectories);
             string[] all = new string[top.Length + engine.Length + extras.Length + specs.Length];
             top.CopyTo(all, 0);
             engine.CopyTo(all, top.Length);
@@ -944,6 +948,171 @@ namespace _Build
         }
         #endregion
 
+        #region Spec index
+        // Replaces the spec index's generated part: one row per spec, then the links that resolve to no page.
+        static string WithSpecIndex(string docs, string text)
+        {
+            string[] all = Directory.GetFiles(docs, "*.md", SearchOption.AllDirectories);
+            HashSet<string> pageNames = new HashSet<string>(all.Length, StringComparer.Ordinal);
+            for (int i = 0; i < all.Length; i++) pageNames.Add(Path.GetFileNameWithoutExtension(all[i]));
+            Dictionary<string, BudgetCount> budgets = ReadBudgets(docs + "Spec\\Engine\\frame-budget.md");
+
+            // read every spec below Spec's root
+            string[] files = Directory.GetFiles(docs + "Spec", "*.md", SearchOption.AllDirectories);
+            SpecRow[] rows = new SpecRow[files.Length];
+            int count = 0;
+            Dictionary<string, List<string>> missing = new Dictionary<string, List<string>>(16, StringComparer.OrdinalIgnoreCase);
+            for (int i = 0; i < files.Length; i++)
+            {
+                string folder = Path.GetDirectoryName(files[i])!;
+                if (string.Equals(folder, docs + "Spec", StringComparison.OrdinalIgnoreCase)) continue;
+                string name = Path.GetFileNameWithoutExtension(files[i]);
+                string spec = File.ReadAllText(files[i]);
+                CollectMissingLinks(spec, name, pageNames, missing);
+                if (name == "frame-budget") continue;
+                SpecRow row = ReadSpec(spec);
+                row.name = name;
+                row.folder = Path.GetFileName(folder);
+                rows[count++] = row;
+            }
+            rows.AsSpan(0, count).Sort(static (a, b) =>
+            {
+                int byFolder = string.CompareOrdinal(a.folder, b.folder);
+                return byFolder != 0 ? byFolder : string.CompareOrdinal(a.name, b.name);
+            });
+
+            // the page up to the marker, then the generated part
+            List<string> lines = SplitLines(text);
+            int marker = lines.Count;
+            for (int i = 0; i < lines.Count; i++)
+                if (Bare(lines[i]).TrimEnd() == Marker) { marker = i; break; }
+            StringBuilder sb = new StringBuilder(text.Length + count * 96 + 1024);
+            for (int i = 0; i < marker; i++) sb.Append(lines[i]);
+            if (marker == lines.Count)
+            {
+                if (sb.Length > 0 && sb[sb.Length - 1] != '\n') sb.Append(Crlf);
+                sb.Append(Crlf);
+            }
+            sb.Append(Marker).Append(Crlf).Append("## Specs").Append(Crlf).Append(Crlf);
+            sb.Append("| Spec | Folder | Status | Forks decided / revisit / open | Open ends | Targets unset | CPU budget |").Append(Crlf);
+            sb.Append("| --- | --- | --- | --- | --- | --- | --- |").Append(Crlf);
+            for (int i = 0; i < count; i++)
+            {
+                SpecRow row = rows[i];
+                bool template = row.hasTargets && row.nowEnd;
+                string status = !template ? "Old shape" : row.soft ? "Soft" : row.open + row.openEnds > 0 ? "Open" : row.revisit > 0 ? "Revisit" : "Complete";
+                string budget = !budgets.TryGetValue(row.name, out BudgetCount b) ? "—" : b.set == b.rows ? "set" : b.set == 0 ? "unset" : "partly";
+                sb.Append("| [[").Append(row.name).Append("]] | ").Append(row.folder).Append(" | ").Append(status).Append(" | ")
+                    .Append(row.decided).Append(" / ").Append(row.revisit).Append(" / ").Append(row.open).Append(" | ")
+                    .Append(template ? row.openEnds.ToString() : "—").Append(" | ")
+                    .Append(template ? row.unsetTargets.ToString() : "—").Append(" | ")
+                    .Append(budget).Append(" |").Append(Crlf);
+            }
+
+            sb.Append(Crlf).Append("## Linked but not written").Append(Crlf).Append(Crlf);
+            string[] names = new string[missing.Count];
+            missing.Keys.CopyTo(names, 0);
+            Array.Sort(names, StringComparer.Ordinal);
+            if (names.Length == 0) sb.Append("None.").Append(Crlf);
+            for (int i = 0; i < names.Length; i++)
+            {
+                List<string> from = missing[names[i]];
+                sb.Append("- [[").Append(names[i]).Append("]] — from ");
+                for (int f = 0; f < from.Count; f++) sb.Append(f == 0 ? "[[" : ", [[").Append(from[f]).Append("]]");
+                sb.Append(Crlf);
+            }
+            return sb.ToString();
+        }
+
+        // Counts one spec's soft marker, forks by state, open End cells and unset targets.
+        static SpecRow ReadSpec(string text)
+        {
+            SpecRow row = default;
+            List<string> lines = SplitLines(text);
+            string section = "";
+            bool fenced = false, inTable = false;
+            for (int i = 0; i < lines.Count; i++)
+            {
+                string bare = Bare(lines[i]);
+                if (IsFence(bare)) { fenced = !fenced; inTable = false; continue; }
+                if (fenced) continue;
+                if (bare.StartsWith("**Soft spec.**", StringComparison.Ordinal)) row.soft = true;
+                if (HeadingLevel(bare) == 2)
+                {
+                    section = bare.Substring(3).Trim();
+                    if (section == "Targets") row.hasTargets = true;
+                }
+                if (!bare.StartsWith('|')) { inTable = false; continue; }
+                if (!inTable)
+                {
+                    inTable = true;
+                    if (section == "Sub-systems" && bare.Contains("| Now |") && bare.Contains("| End |")) row.nowEnd = true;
+                    continue;
+                }
+                if (IsSeparatorRow(bare)) continue;
+                if (section == "Forks")
+                {
+                    if (bare.Contains("to be revisited")) row.revisit++;
+                    else if (bare.Contains("**Decided")) row.decided++;
+                    else row.open++;
+                    continue;
+                }
+                if (section != "Sub-systems" && section != "Targets") continue;
+                string[] cells = bare.Split('|');
+                if (cells.Length < 4) continue;
+                if (section == "Sub-systems" && cells[cells.Length - 2].Contains("Open (")) row.openEnds++;
+                if (section == "Targets" && cells[2].Trim().Length == 0) row.unsetTargets++;
+            }
+            return row;
+        }
+
+        // CPU budget cells per spec, from the frame budget's rows that link it.
+        static Dictionary<string, BudgetCount> ReadBudgets(string path)
+        {
+            Dictionary<string, BudgetCount> budgets = new Dictionary<string, BudgetCount>(16, StringComparer.OrdinalIgnoreCase);
+            List<string> lines = SplitLines(File.ReadAllText(path));
+            for (int i = 0; i < lines.Count; i++)
+            {
+                string bare = Bare(lines[i]);
+                if (!bare.StartsWith('|')) continue;
+                string[] cells = bare.Split('|');
+                if (cells.Length < 9) continue;
+                Match link = WikiLink.Match(cells[7]);
+                if (!link.Success || link.Groups[1].Length == 0) continue;
+                string spec = link.Groups[1].Value.Trim();
+                budgets.TryGetValue(spec, out BudgetCount count);
+                count.rows++;
+                if (cells[4].Trim().Length > 0) count.set++;
+                budgets[spec] = count;
+            }
+            return budgets;
+        }
+
+        static void CollectMissingLinks(string text, string spec, HashSet<string> pageNames, Dictionary<string, List<string>> missing)
+        {
+            MatchCollection links = WikiLink.Matches(Backticked.Replace(text, ""));
+            for (int i = 0; i < links.Count; i++)
+            {
+                string target = links[i].Groups[1].Value.Trim();
+                target = target.Substring(target.LastIndexOf('/') + 1);
+                if (target.Length == 0 || target.Contains('.') || pageNames.Contains(target)) continue;
+                if (!missing.TryGetValue(target, out List<string>? from))
+                {
+                    from = new List<string>(4);
+                    missing[target] = from;
+                }
+                if (!from.Contains(spec)) from.Add(spec);
+            }
+        }
+
+        static bool IsSeparatorRow(string bare)
+        {
+            for (int i = 0; i < bare.Length; i++)
+                if (bare[i] is not ('|' or '-' or ':' or ' ')) return false;
+            return true;
+        }
+        #endregion
+
         #region Primitives
         static List<string> SplitLines(string text)
         {
@@ -1073,6 +1242,28 @@ namespace _Build
         readonly record struct DataRow(string Action, string Category, string File);
         readonly record struct Decision(string Name, HashSet<string> Segments);
         readonly record struct Maintainer(Regex Glob, string Name);
+
+        // one spec's completeness
+        struct SpecRow
+        {
+            public string name;
+            public string folder;
+            public bool soft;
+            public bool hasTargets;
+            public bool nowEnd;
+            public int decided;
+            public int revisit;
+            public int open;
+            public int openEnds;
+            public int unsetTargets;
+        }
+
+        // frame-budget rows linking one spec, and how many have a CPU budget
+        struct BudgetCount
+        {
+            public int rows;
+            public int set;
+        }
 
         // Records one file's namespaces, top-level types, actions and cross-file references.
         sealed class EdgeWalker : CSharpSyntaxWalker
