@@ -686,6 +686,19 @@ namespace ArctisAurora.Core.UI.Document
             RequestScrollToCaret();
         }
 
+        // The page the view shows, which a view-only pick can make differ from the note's.
+        public PageLayout? ViewedPage => content?.page;
+
+        // Shows the note at another page without changing the note.
+        public void ViewPage(PageLayout page)
+        {
+            if (content == null) return;
+
+            content.page = page;
+            content.InvalidateLayout();
+            RequestScrollToCaret();
+        }
+
         // The note's own palette, or the app's when it names none. Not undoable.
         public void SetPalette(string? name)
         {

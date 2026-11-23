@@ -5,6 +5,7 @@ using ArctisAurora.Core.UI.Menus;
 using ArctisAurora.Core.UI.Notes;
 using ArctisAurora.Core.UI.Tex;
 using ArctisAurora.EngineWork;
+using System.Numerics;
 using Image = Arctis.Imaging.Image;
 
 namespace ArctisAurora.Core.UI.Text
@@ -461,6 +462,20 @@ namespace ArctisAurora.Core.UI.Text
 
         [A_XSDActionDependency("Text.Save", "Input", "Writes the focused note back to the file it was loaded from")]
         public static void Save() => Editor()?.Save();
+
+        [A_XSDActionDependency("Text.PageSizeMenu", "Input", "Opens a menu showing the focused note at another paper size, leaving the note's own page as it is")]
+        public static void PageSizeMenu()
+        {
+            DocumentEditorControl? editor = Editor();
+            if (editor == null) return;
+
+            PageLayout? current = editor.ViewedPage;
+            WindowRoot? root = UIEngine.WindowOf(editor)?.ui.uiRoot;
+            if (current == null || root == null) return;
+
+            LayoutRect rect = root.arrangedRect;
+            ContextMenus.Open(DocumentToolbarControl.ViewSizeEntries(editor, current), editor, new Vector2(rect.x + rect.width * 0.5f, rect.y + rect.height * 0.5f));
+        }
 
         [A_XSDActionDependency("Notes.EncryptBlocks", "Input", "Asks for a password and encrypts the paragraphs and tables the selection touches")]
         public static void EncryptBlocks() => Editor()?.EncryptBlocks();

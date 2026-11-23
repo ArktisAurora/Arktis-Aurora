@@ -527,6 +527,16 @@ namespace ArctisAurora.Core.UI.Document
                 return true;
             }
 
+            foreach (Entity child in children)
+            {
+                if (TableIn(child) is not TableControl table || table.hidden || !table.arrangedRect.Contains(point)) continue;
+                if (table.BlockAt(point) is not BlockControl cellBlock) continue;
+
+                block = cellBlock;
+                offset = cellBlock.IndexAt(point);
+                return true;
+            }
+
             return CaretAtPoint(point.X, point.Y, out block, out offset);
         }
 
@@ -999,6 +1009,8 @@ namespace ArctisAurora.Core.UI.Document
                 inserts = false;
                 contentWidth = paper.X;
                 bool paged = page.mode == PageMode.Paged;
+                float noteWidth = TextWidth(document.layout.Page);
+                float widen = fitWidth ? 1f : TextWidth(page) / noteWidth;
                 foreach (Entity child in children)
                 {
                     Control item;
@@ -1010,7 +1022,7 @@ namespace ArctisAurora.Core.UI.Document
                     }
                     else if (TableIn(child) is TableControl table)
                     {
-                        table.SetZoom(zoom);
+                        table.SetZoom(zoom, DoesFill(table.widths, noteWidth) ? widen : 1f);
                         item = (Control)child;
                     }
                     else if (child is SealedControl locked) item = locked;
@@ -1187,6 +1199,17 @@ namespace ArctisAurora.Core.UI.Document
             foreach (PictureHandle handle in pictureHandles)
                 walked += UIEngine.Collect(handle, z);
             return walked;
+        }
+
+        // A page's text width in design pixels.
+        private static float TextWidth(PageLayout layout) => layout.SizePx().X - (layout.marginLeft + layout.marginRight) * PageLayout.PxPerMm;
+
+        // True when columns fill a text width to within a pixel each, as a Markdown table's do.
+        private static bool DoesFill(float[] widths, float width)
+        {
+            float sum = 0f;
+            for (int c = 0; c < widths.Length; c++) sum += widths[c];
+            return sum <= width && sum > width - widths.Length;
         }
         #endregion
     }

@@ -66,6 +66,7 @@ namespace ArctisAurora.Core.UI.Document
         private XElement? resizeBefore;
 
         private float zoom = 1f;
+        private float stretch = 1f;
 
         private const float cellInset = 6f;
         private const float borderWidth = 1f;
@@ -174,14 +175,34 @@ namespace ArctisAurora.Core.UI.Document
             return null;
         }
 
-        internal void SetZoom(float value)
+        // The last block starting at or above a point in the cell holding it; null outside every cell.
+        internal BlockControl? BlockAt(Vector2 point)
+        {
+            foreach (Entity child in children)
+            {
+                if (child is not StackPanelControl cell || !Box(cell).Contains(point)) continue;
+
+                BlockControl? found = null;
+                foreach (Entity entry in cell.children)
+                {
+                    if (entry is not BlockControl block) continue;
+                    if (found == null || block.arrangedRect.y <= point.Y) found = block;
+                }
+                return found;
+            }
+            return null;
+        }
+
+        internal void SetZoom(float value, float widen)
         {
             bool changed = zoom != value;
-            if (changed)
+            if (changed || stretch != widen)
             {
                 zoom = value;
+                stretch = widen;
+                float scale = zoom * stretch;
                 for (int c = 0; c < widths.Length; c++)
-                    columnDefinitions[c].value = widths[c] * zoom;
+                    columnDefinitions[c].value = widths[c] * scale;
                 InvalidateLayout();
             }
 
@@ -491,11 +512,11 @@ namespace ArctisAurora.Core.UI.Document
         {
             if (resizeColumn < 0) return;
 
-            float width = MathF.Max(minColumnWidth, MathF.Round(resizeWidth + (x - resizeGrab) / zoom));
+            float width = MathF.Max(minColumnWidth, MathF.Round(resizeWidth + (x - resizeGrab) / (zoom * stretch)));
             if (width == widths[resizeColumn]) return;
 
             widths[resizeColumn] = width;
-            columnDefinitions[resizeColumn].value = width * zoom;
+            columnDefinitions[resizeColumn].value = width * zoom * stretch;
             InvalidateLayout();
         }
 

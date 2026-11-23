@@ -632,6 +632,31 @@ namespace ArctisAurora.Core.UI.Document
             return entries;
         }
 
+        // The paper sizes and an orientation flip, for the view alone.
+        internal static List<ContextMenuEntry> ViewSizeEntries(DocumentEditorControl editor, PageLayout current)
+        {
+            PageSize[] sizes = Enum.GetValues<PageSize>();
+            List<ContextMenuEntry> entries = new List<ContextMenuEntry>(sizes.Length);
+            for (int i = 0; i < sizes.Length; i++)
+            {
+                if (sizes[i] == PageSize.Custom) continue;
+
+                PageSize picked = sizes[i];
+                entries.Add(new ContextMenuButton(picked.ToString(), () => ViewPage(editor, current, page => page.size = picked)));
+            }
+
+            entries.Add(new ContextMenuButton(current.landscape ? "Portrait" : "Landscape",
+                () => ViewPage(editor, current, page => page.landscape = !page.landscape)));
+            return entries;
+        }
+
+        private static void ViewPage(DocumentEditorControl editor, PageLayout current, Action<PageLayout> change)
+        {
+            PageLayout page = current.Clone();
+            change(page);
+            editor.ViewPage(page);
+        }
+
         // Width and height in millimetres; Enter in either sets them as a custom paper size.
         private static StackPanelControl CustomSizeFields(DocumentEditorControl editor, PageLayout current)
         {

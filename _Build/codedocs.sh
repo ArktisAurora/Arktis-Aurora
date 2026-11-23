@@ -6,13 +6,13 @@ out="${TEMP:-/tmp}/aurora-codedocs"
 mkdir -p "$out"
 log="$out/build.txt"
 
-targets="$sln"
+targets=("$sln")
 for p in Thorium Carbon _Build; do
 	[ -f "$root/$p/$p.csproj" ] || continue
-	grep -q "$p\\.csproj" "$sln" || targets="$targets $root/$p/$p.csproj"
+	grep -q "$p\\.csproj" "$sln" || targets+=("$root/$p/$p.csproj")
 done
 : > "$log"
-for t in $targets; do
+for t in "${targets[@]}"; do
 	if ! dotnet build "$t" -v:q -nologo -clp:ErrorsOnly >> "$log" 2>&1; then
 		grep -E ': error ' "$log" | sed -E 's/ \[[^]]*\]$//' | sort -u | head -20
 		echo "BUILD FAILED (log: $log)"
