@@ -899,7 +899,7 @@ namespace ArctisAurora.Core.UI.Text
                         WriteRect(quads, segmentX, baselineY - run.fontSize * strikeRise - weight * 0.5f, pen - segmentX, weight, paint, alpha, z, clip, gradientRect);
 
                     if (effect != 0)
-                        FrameScheduler.RequestFrameAt(started + (segment.charStart + segment.charCount - run.charStart) * stagger + Effects.Duration(effect));
+                        WorkScheduler.RequestFrameAt(started + (segment.charStart + segment.charCount - run.charStart) * stagger + Effects.Duration(effect));
                 }
             }
         }
@@ -1056,7 +1056,7 @@ namespace ArctisAurora.Core.UI.Text
             AtlasMetaData atlas = font.atlasMetaData;
             (Glyph glyph, int index) = atlas.GetGlyphAndIndex(character);
 
-            // An unimported character draws as a blank of space width rather than throwing.
+            // A bake without a .notdef box draws an unimported char as a space-wide blank.
             if (glyph == null)
             {
                 (glyph, index) = atlas.GetGlyphAndIndex(' ');

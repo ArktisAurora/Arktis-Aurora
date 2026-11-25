@@ -62,7 +62,7 @@ namespace ArctisAurora.Core.Threading
             AssertNotNested();
             int chunk = Chunk(rowBytes);
             int chunks = (count + chunk - 1) / chunk;
-            int helpers = Math.Min(chunks, FrameScheduler.WorkerCount + 1) - 1;
+            int helpers = Math.Min(chunks, WorkScheduler.WorkerCount + 1) - 1;
             if (helpers <= 0 || Interlocked.CompareExchange(ref _kernel, kernel, null) != null)
             {
                 RunInline(count, chunk, kernel);
@@ -75,7 +75,7 @@ namespace ArctisAurora.Core.Threading
             Volatile.Write(ref _helpers, helpers);
             Volatile.Write(ref _counters.remaining, chunks);
             Interlocked.Exchange(ref _counters.claim, (long)chunks << 32);
-            FrameScheduler.Wake(helpers);
+            WorkScheduler.Wake(helpers);
 
             RunChunks();
             while (Volatile.Read(ref _counters.remaining) > 0)

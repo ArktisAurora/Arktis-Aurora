@@ -36,7 +36,7 @@ namespace ArctisAurora.Core.Threading
 
         public Thread? Worker { get; private set; }
 
-        // Set by FrameScheduler for a system listed as Dedicated.
+        // Set by WorkScheduler for a system listed as Dedicated.
         public bool Dedicated { get; internal set; }
 
         private volatile bool _running;
@@ -81,7 +81,7 @@ namespace ArctisAurora.Core.Threading
             Worker.Start();
         }
 
-        // Runs as steps of the frame graph; FrameScheduler runs them through RunStep.
+        // Runs as steps of the frame graph; WorkScheduler runs them through RunStep.
         internal void StartScheduled()
         {
             _running = true;
@@ -160,7 +160,7 @@ namespace ArctisAurora.Core.Threading
                     Profiling.Frame.End();
                     Profiling.Report();
 
-                    WaitOut(tickStart, Math.Max(TargetPeriodMs, FrameScheduler.CapPeriodMs));
+                    WaitOut(tickStart, Math.Max(TargetPeriodMs, WorkScheduler.CapPeriodMs));
                 }
 
                 OnStop();

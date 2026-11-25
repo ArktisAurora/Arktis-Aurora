@@ -286,10 +286,10 @@ ECS design is still being settled — avoid refactoring the entity/component mod
 | Threading | 🔧 In progress | Basic threading, design not finalised |
 
 #### Engine Loop & Threading — Key Facts
-- **Systems are steps of one frame graph** (`Threading.FrameScheduler`, data in `Frame.frame.axml`). A step
+- **Systems are steps of one frame graph** (`Threading.WorkScheduler`, data in `Frame.frame.axml`). A step
   names an action (`[A_XSDActionDependency(name, "Frame")]`) and the pool columns it reads and writes; stages
   are computed from those lists, and unpinned steps run on worker threads. `Render` is the one `<Dedicated>`
-  thread. Frame rate is uncapped unless `<FrameCap MaxFps>` sets one — see `ClaudeMemory/Decisions/frame-scheduler.md`
+  thread. Frame rate is uncapped unless `<FrameCap MaxFps>` sets one — see `ClaudeMemory/Decisions/work-scheduler.md`
 - **Pools have no owner thread.** A step may touch only the columns it declares (DEBUG `DataPool.AssertAccess`);
   `<Step Edge="Pool"/>` runs that pool's `FrameEdge`. Consumers poll pool versions (`PoolCursor`)
 - **Main's steps, in order:** `Main.Input` (poll, reap, posted work, keybinds, `HandleUI`, drag ghost, context
@@ -368,7 +368,7 @@ attribute any more; both were replaced by declared phases in `Bootstrap.axml`.
   `DataPool` and `DataManager` log, so the dependency only runs one way
 - **The drain is a plain background thread, not a `ThreadedSystem`** — it owns no pools. Do not
   convert it
-- **Self-starting**, because `XSDGenerator` logs before `Engine.Init`. `Logging.Configure` is step 2
+- **Self-starting**, because `XSDGenerator` logs before `Engine.Init`. `Logging.Configure` is step 3
   of `Bootstrap.axml` and replays what boot logged before it; `Logging.Flush` is the last `Commit`
   step of `Shutdown.axml`
 - **File spills on watermark, `FlushMs`, or any `Error`**, and rotates at `MaxFileMB`. Config is

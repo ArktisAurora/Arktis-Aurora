@@ -122,7 +122,7 @@ namespace ArctisAurora.Core.UI.Tex
             editedAt = Engine.totalTime;
             if (!live) return;
             SetTicking(true);
-            FrameScheduler.RequestFrameAt(editedAt + recompileDelay);
+            WorkScheduler.RequestFrameAt(editedAt + recompileDelay);
         }
 
         public override void OnTick()
@@ -136,7 +136,7 @@ namespace ArctisAurora.Core.UI.Tex
             }
             if (Engine.totalTime < editedAt + recompileDelay)
             {
-                FrameScheduler.RequestFrameAt(editedAt + recompileDelay);
+                WorkScheduler.RequestFrameAt(editedAt + recompileDelay);
                 return;
             }
 
@@ -165,7 +165,7 @@ namespace ArctisAurora.Core.UI.Tex
             if (pageRefs != null)
             {
                 SetTicking(true);
-                FrameScheduler.RequestFrameAt(Engine.totalTime);
+                WorkScheduler.RequestFrameAt(Engine.totalTime);
             }
 
             ShowErrors(found);
@@ -217,7 +217,7 @@ namespace ArctisAurora.Core.UI.Tex
                 int? page = preview.PageAt(site.block, site.offset);
                 if (page == null)
                 {
-                    FrameScheduler.RequestFrameAt(Engine.totalTime);
+                    WorkScheduler.RequestFrameAt(Engine.totalTime);
                     return;
                 }
 
@@ -237,7 +237,7 @@ namespace ArctisAurora.Core.UI.Tex
             }
             pageReloads++;
             Show(pageTree!);
-            FrameScheduler.RequestFrameAt(Engine.totalTime);
+            WorkScheduler.RequestFrameAt(Engine.totalTime);
         }
 
         private void ShowErrors(List<TexError> found)

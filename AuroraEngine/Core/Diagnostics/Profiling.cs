@@ -383,7 +383,7 @@ namespace ArctisAurora.Core.Diagnostics
         {
             if (Volatile.Read(ref _heldBatches) > 0)
             {
-                FrameScheduler.WakeWaiting();
+                WorkScheduler.WakeWaiting();
                 return false;
             }
             return FrameSpool.TryEndSession();
@@ -461,7 +461,7 @@ namespace ArctisAurora.Core.Diagnostics
             long deadline = Stopwatch.GetTimestamp() + flushWaitMs * Stopwatch.Frequency / 1000;
             while (Volatile.Read(ref _heldBatches) > 0 && Stopwatch.GetTimestamp() < deadline)
             {
-                FrameScheduler.WakeWaiting();
+                WorkScheduler.WakeWaiting();
                 Thread.Sleep(1);
             }
             if (Volatile.Read(ref _heldBatches) > 0)

@@ -61,7 +61,7 @@ namespace ArctisAurora.EngineWork
         // quick access
         internal static List<Entity> entitiesOnDestroy = null!;
 
-        // systems — stepped by FrameScheduler from Frame.frame.axml, or Dedicated on a thread of their own
+        // systems — stepped by WorkScheduler from Frame.frame.axml, or Dedicated on a thread of their own
         internal static MainSystem mainSystem = null!;
         internal static PhysicsSystem physicsSystem = null!;
         internal static RenderSystem renderSystem = null!;
@@ -88,6 +88,7 @@ namespace ArctisAurora.EngineWork
             if (send != null) Environment.Exit(CommandPipe.Send(send));
 
             engineInstance = this;
+            Log.Info($"running {Environment.ProcessPath}");
             Log.Info($"starting main thread at OS id {(OperatingSystem.IsWindows() ? GetCurrentThreadId() : Environment.ProcessId)}");
         }
 
@@ -116,8 +117,8 @@ namespace ArctisAurora.EngineWork
             renderSystem = new RenderSystem();
             animationSystem = new AnimationSystem();
 
-            FrameScheduler.Load(Paths.FRAME);
-            FrameScheduler.Start();
+            WorkScheduler.Load(Paths.FRAME);
+            WorkScheduler.Start();
 
             if(startImmediately)
             {
@@ -280,7 +281,7 @@ namespace ArctisAurora.EngineWork
 
         // Blocks on the calling thread — main cannot be handed a spawned thread, GLFW requires
         // PollEvents on the one that created the window.
-        public void Run() => FrameScheduler.Run();
+        public void Run() => WorkScheduler.Run();
 
         // The Main.Input step. MainSystem drives this; the body stays here because it touches the
         // registries, input handler and UI state that Engine owns.
@@ -364,7 +365,7 @@ namespace ArctisAurora.EngineWork
 
         public void Stop()
         {
-            FrameScheduler.Stop();
+            WorkScheduler.Stop();
             mainSystem?.Stop();
             physicsSystem?.Stop();
             renderSystem?.Stop();

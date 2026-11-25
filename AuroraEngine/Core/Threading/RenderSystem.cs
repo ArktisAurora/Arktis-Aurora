@@ -29,7 +29,7 @@ namespace ArctisAurora.Core.Threading
             int epoch;
             while ((epoch = Engine.mainSystem.Epoch) == _drawn && Running)
             {
-                FrameScheduler.WaitForFrame();
+                WorkScheduler.WaitForFrame();
                 Profiling.Frame.Settle();
             }
             bool presented = true;

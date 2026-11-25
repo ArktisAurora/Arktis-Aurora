@@ -12,7 +12,7 @@ namespace ArctisAurora.Core.Threading
 {
     // Runs Frame.frame.axml: steps placed into stages by the columns they touch, stage after stage, the
     // main thread running pinned steps and helping with the rest.
-    public static class FrameScheduler
+    public static class WorkScheduler
     {
         private static readonly LogChannel Log = LogChannel.For("Threading");
 
@@ -126,11 +126,11 @@ namespace ArctisAurora.Core.Threading
             foreach (XElement element in root.Elements(ns + "Dedicated"))
             {
                 string name = element.Attribute("System")?.Value ?? string.Empty;
-                ThreadedSystem system = ThreadedSystem.Find(name) ?? throw new Exception($"[FrameScheduler] '{name}' is not a system.");
+                ThreadedSystem system = ThreadedSystem.Find(name) ?? throw new Exception($"[WorkScheduler] '{name}' is not a system.");
                 if (system is MainSystem)
-                    throw new Exception($"[FrameScheduler] Main cannot be Dedicated — GLFW needs it on the main thread, as a Pinned step.");
+                    throw new Exception($"[WorkScheduler] Main cannot be Dedicated — GLFW needs it on the main thread, as a Pinned step.");
                 if (system.Dedicated)
-                    throw new Exception($"[FrameScheduler] {name} is listed as Dedicated twice.");
+                    throw new Exception($"[WorkScheduler] {name} is listed as Dedicated twice.");
 
                 system.Dedicated = true;
                 _dedicated.Add(system);
@@ -143,7 +143,7 @@ namespace ArctisAurora.Core.Threading
             {
                 FrameStep step = Build(element, actions);
                 if (!listed.Add(step.Name))
-                    throw new Exception($"[FrameScheduler] {step.Name} is listed twice in Frame.frame.axml.");
+                    throw new Exception($"[WorkScheduler] {step.Name} is listed twice in Frame.frame.axml.");
 
                 steps.Add(step);
                 if (step.System != null && !_scheduled.Contains(step.System))
@@ -177,7 +177,7 @@ namespace ArctisAurora.Core.Threading
                     A_XSDActionDependencyAttribute? attr = method.GetCustomAttribute<A_XSDActionDependencyAttribute>();
                     if (attr == null || attr.Category != "Frame") continue;
                     if (!actions.TryAdd(attr.Name, (system, method.CreateDelegate<Action>(system))))
-                        throw new Exception($"[FrameScheduler] Frame action '{attr.Name}' is declared twice.");
+                        throw new Exception($"[WorkScheduler] Frame action '{attr.Name}' is declared twice.");
                 }
             }
             return actions;
@@ -190,12 +190,12 @@ namespace ArctisAurora.Core.Threading
             string edge = element.Attribute("Edge")?.Value ?? string.Empty;
             bool pinned = bool.Parse(element.Attribute("Pinned")?.Value ?? "false");
             if (action.Length > 0 == edge.Length > 0)
-                throw new Exception($"[FrameScheduler] a Step names either an Action or an Edge: '{element}'.");
+                throw new Exception($"[WorkScheduler] a Step names either an Action or an Edge: '{element}'.");
 
             if (edge.Length > 0)
             {
                 if (!DataManager.TryGet(edge, out DataPool pool))
-                    throw new Exception($"[FrameScheduler] Edge names pool '{edge}', which does not exist.");
+                    throw new Exception($"[WorkScheduler] Edge names pool '{edge}', which does not exist.");
 
                 ulong[] writes = new ulong[DataManager.Pools.Count];
                 writes[pool.Id] = FrameStep.AllColumns(pool);
@@ -203,9 +203,9 @@ namespace ArctisAurora.Core.Threading
             }
 
             if (!actions.TryGetValue(action, out (ThreadedSystem system, Action body) found))
-                throw new Exception($"[FrameScheduler] '{action}' is not a Frame action.");
+                throw new Exception($"[WorkScheduler] '{action}' is not a Frame action.");
             if (found.system.Dedicated)
-                throw new Exception($"[FrameScheduler] {action} belongs to {found.system.Name}, which is Dedicated and runs its own loop.");
+                throw new Exception($"[WorkScheduler] {action} belongs to {found.system.Name}, which is Dedicated and runs its own loop.");
 
             return new FrameStep(action, found.system, found.body, pinned, Access(element, "Reads", action), Access(element, "Writes", action));
         }
@@ -221,7 +221,7 @@ namespace ArctisAurora.Core.Threading
                 int dot = entry.IndexOf('.');
                 string poolName = dot < 0 ? entry : entry.Substring(0, dot);
                 if (!DataManager.TryGet(poolName, out DataPool pool))
-                    throw new Exception($"[FrameScheduler] {step} {attribute} names pool '{poolName}', which does not exist.");
+                    throw new Exception($"[WorkScheduler] {step} {attribute} names pool '{poolName}', which does not exist.");
 
                 if (dot < 0)
                 {
@@ -231,7 +231,7 @@ namespace ArctisAurora.Core.Threading
 
                 Type? column = DataManager.ResolveComponent(entry.Substring(dot + 1));
                 if (column == null || !pool.HasComponent(column))
-                    throw new Exception($"[FrameScheduler] {step} {attribute} names '{entry}', which is not a column of {poolName}.");
+                    throw new Exception($"[WorkScheduler] {step} {attribute} names '{entry}', which is not a column of {poolName}.");
                 masks[pool.Id] |= 1UL << pool.ColumnId(column);
             }
             return masks;
@@ -319,7 +319,7 @@ namespace ArctisAurora.Core.Threading
             }
 
             if (placed < steps.Count)
-                throw new Exception($"[FrameScheduler] Frame.frame.axml steps wait on each other in a loop: {Loop(steps, pending)}");
+                throw new Exception($"[WorkScheduler] Frame.frame.axml steps wait on each other in a loop: {Loop(steps, pending)}");
 
             FrameStep[][] stages = new FrameStep[stageCount][];
             for (int s = 0; s < stageCount; s++)

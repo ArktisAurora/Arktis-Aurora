@@ -29,7 +29,7 @@ namespace ArctisAurora.Core.Threading
         // Whether the next frame must run now. Drops the wake times a frame has reached; wakeAt is the earliest left.
         internal bool Pending(out double wakeAt)
         {
-            wakeAt = FrameScheduler.NextWake();
+            wakeAt = WorkScheduler.NextWake();
 
             _done ??= DataManager.Get("AnimationDone");
             _dirty ??= DataManager.Get("LayoutDirty");

@@ -1,6 +1,8 @@
 using ArctisAurora.Core.Testing;
 using ArctisAurora.EngineWork;
 using ArctisAurora.EngineWork.Rendering;
+using Silk.NET.GLFW;
+using System.Runtime.InteropServices;
 
 namespace ArctisAurora.Core.Filing
 {
@@ -8,13 +10,16 @@ namespace ArctisAurora.Core.Filing
     public static unsafe class ClipboardText
     {
         private static string? testText;
+        private static delegate* unmanaged<WindowHandle*, byte*> getClipboardString;
 
         public static string? Get()
         {
             if (TestRunner.active) return testText;
             if (Engine.primary == null) return null;
 
-            return AGlfwWindow._glfw.GetClipboardString(Engine.primary.os.handle);
+            if (getClipboardString == null)
+                getClipboardString = (delegate* unmanaged<WindowHandle*, byte*>)AGlfwWindow._glfw.Context.GetProcAddress("glfwGetClipboardString");
+            return Marshal.PtrToStringUTF8((nint)getClipboardString(Engine.primary.os.handle));
         }
 
         public static void Set(string text)

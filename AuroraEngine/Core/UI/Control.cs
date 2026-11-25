@@ -431,7 +431,7 @@ namespace ArctisAurora.Core.UI
         public void RestartEffect()
         {
             visual.effectStart = (float)Engine.totalTime;
-            FrameScheduler.RequestFrameAt(Engine.totalTime + Effects.Duration(visual.effect));
+            WorkScheduler.RequestFrameAt(Engine.totalTime + Effects.Duration(visual.effect));
         }
 
         [A_XSDElementProperty("Clip", "UI", "Name of a clip in Animations/*.anim.axml, played once when this control starts, or at once when set on a started control.")]

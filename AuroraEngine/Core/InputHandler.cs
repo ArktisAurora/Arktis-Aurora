@@ -1226,7 +1226,7 @@ namespace ArctisAurora.EngineWork
                 scrollOpen = scrollTouched = scrollLifted = scrollEndWrite = false;
             }
             else if (!scrollTouched || scrollLifted)
-                FrameScheduler.RequestFrameAt(Engine.totalTime + quiet - since);
+                WorkScheduler.RequestFrameAt(Engine.totalTime + quiet - since);
         }
         #endregion
 

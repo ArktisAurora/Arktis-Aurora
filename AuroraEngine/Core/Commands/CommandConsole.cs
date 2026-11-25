@@ -178,9 +178,9 @@ namespace ArctisAurora.Core.Commands
         private static void Wait(Line line, int ms)
         {
             line.resumeAt = Engine.totalTime + ms / 1000.0;
-            line.resumeAfterFrame = FrameScheduler.Frame;
+            line.resumeAfterFrame = WorkScheduler.Frame;
             _waiting.Add(line);
-            FrameScheduler.RequestFrameAt(Engine.totalTime + Math.Max(ms, 1) / 1000.0);
+            WorkScheduler.RequestFrameAt(Engine.totalTime + Math.Max(ms, 1) / 1000.0);
 
             _pump ??= new Pump();
             _pump.SetTicking(true);
@@ -208,7 +208,7 @@ namespace ArctisAurora.Core.Commands
             public override void OnTick()
             {
                 base.OnTick();
-                Line[] due = _waiting.Where(l => Engine.totalTime >= l.resumeAt && FrameScheduler.Frame > l.resumeAfterFrame).ToArray();
+                Line[] due = _waiting.Where(l => Engine.totalTime >= l.resumeAt && WorkScheduler.Frame > l.resumeAfterFrame).ToArray();
                 foreach (Line line in due)
                 {
                     _waiting.Remove(line);

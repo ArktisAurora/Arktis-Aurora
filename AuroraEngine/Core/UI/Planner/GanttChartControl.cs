@@ -179,7 +179,7 @@ namespace ArctisAurora.Core.UI.Planner
                 shownMinute = minute;
                 InvalidateArrange();
             }
-            FrameScheduler.RequestFrameAt(Engine.totalTime + (minute.AddMinutes(1) - now).TotalSeconds);
+            WorkScheduler.RequestFrameAt(Engine.totalTime + (minute.AddMinutes(1) - now).TotalSeconds);
         }
 
         // Tickets or categories changed; rows and span are rebuilt.

@@ -93,14 +93,14 @@ namespace ArctisAurora.Core.UI.Controls
 
             _newest = new LabelControl { text = text, fontSize = rowFontSize, horizontalAlignment = HorizontalAlignment.Left };
             _rows.AddChild(_newest);
-            _addedFrame = FrameScheduler.Frame;
+            _addedFrame = WorkScheduler.Frame;
             SetTicking(true);
         }
 
         public override void OnTick()
         {
             base.OnTick();
-            if (FrameScheduler.Frame <= _addedFrame) return;
+            if (WorkScheduler.Frame <= _addedFrame) return;
 
             if (_newest != null) _scroll.ScrollIntoView(_newest.arrangedRect);
             SetTicking(false);

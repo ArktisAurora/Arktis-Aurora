@@ -128,7 +128,7 @@ namespace ArctisAurora.Core.UI.Text
         private void RequestTick()
         {
             SetTicking(true);
-            FrameScheduler.RequestFrameAt(Engine.totalTime);
+            WorkScheduler.RequestFrameAt(Engine.totalTime);
         }
 
         public override void OnTick()

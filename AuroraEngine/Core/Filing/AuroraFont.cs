@@ -779,7 +779,7 @@ namespace ArctisAurora.Core.Filing
         public float Kern(char first, char second, int face) =>
             kerns.Count == 0 ? 0f : kerns.GetValueOrDefault((ulong)face << 32 | (uint)first << 16 | second);
 
-        // A char's em advance in one face, unimported chars as space; character must be below AdvanceTableSize.
+        // A char's em advance in one face, unimported as .notdef; character must be below AdvanceTableSize.
         public float TableAdvance(char character, int face) => advances[face * AdvanceTableSize + character];
 
         public Glyph GetGlyph(char character)

@@ -284,7 +284,7 @@ namespace ArctisAurora.Core.UI.Planner
                     slide = 0f;
                     if (settleTo > 0f) editor.StepDays(IsMonth ? 7 : 1);
                 }
-                else FrameScheduler.RequestFrameAt(Engine.totalTime + 0.001);
+                else WorkScheduler.RequestFrameAt(Engine.totalTime + 0.001);
                 Changed();
             }
             float target = Math.Max(1, lanes);
@@ -292,7 +292,7 @@ namespace ArctisAurora.Core.UI.Planner
             {
                 shownLanes += (target - shownLanes) * (1f - MathF.Exp(-(float)Engine.deltaTime.TotalSeconds / laneSeconds));
                 if (MathF.Abs(target - shownLanes) < 0.01f) shownLanes = target;
-                else FrameScheduler.RequestFrameAt(Engine.totalTime + 0.001);
+                else WorkScheduler.RequestFrameAt(Engine.totalTime + 0.001);
                 InvalidateLayout();
             }
             DateTime now = editor.Now;
@@ -302,7 +302,7 @@ namespace ArctisAurora.Core.UI.Planner
                 shownMinute = minute;
                 InvalidateArrange();
             }
-            FrameScheduler.RequestFrameAt(Engine.totalTime + (minute.AddMinutes(1) - now).TotalSeconds);
+            WorkScheduler.RequestFrameAt(Engine.totalTime + (minute.AddMinutes(1) - now).TotalSeconds);
         }
 
         #region ---- geometry ----

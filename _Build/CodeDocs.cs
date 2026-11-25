@@ -1001,11 +1001,11 @@ namespace _Build
                 SpecRow row = rows[i];
                 bool template = row.hasTargets && row.nowEnd;
                 string status = !template ? "Old shape" : row.soft ? "Soft" : row.open + row.openEnds > 0 ? "Open" : row.revisit > 0 ? "Revisit" : "Complete";
-                string budget = !budgets.TryGetValue(row.name, out BudgetCount b) ? "—" : b.set == b.rows ? "set" : b.set == 0 ? "unset" : "partly";
+                string budget = !budgets.TryGetValue(row.name, out BudgetCount b) ? "-" : b.set == b.rows ? "set" : b.set == 0 ? "unset" : "partly";
                 sb.Append("| [[").Append(row.name).Append("]] | ").Append(row.folder).Append(" | ").Append(status).Append(" | ")
                     .Append(row.decided).Append(" / ").Append(row.revisit).Append(" / ").Append(row.open).Append(" | ")
-                    .Append(template ? row.openEnds.ToString() : "—").Append(" | ")
-                    .Append(template ? row.unsetTargets.ToString() : "—").Append(" | ")
+                    .Append(template ? row.openEnds.ToString() : "-").Append(" | ")
+                    .Append(template ? row.unsetTargets.ToString() : "-").Append(" | ")
                     .Append(budget).Append(" |").Append(Crlf);
             }
 
@@ -1017,7 +1017,7 @@ namespace _Build
             for (int i = 0; i < names.Length; i++)
             {
                 List<string> from = missing[names[i]];
-                sb.Append("- [[").Append(names[i]).Append("]] — from ");
+                sb.Append("- [[").Append(names[i]).Append("]]: from ");
                 for (int f = 0; f < from.Count; f++) sb.Append(f == 0 ? "[[" : ", [[").Append(from[f]).Append("]]");
                 sb.Append(Crlf);
             }
