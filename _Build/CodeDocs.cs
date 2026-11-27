@@ -994,8 +994,8 @@ namespace _Build
                 sb.Append(Crlf);
             }
             sb.Append(Marker).Append(Crlf).Append("## Specs").Append(Crlf).Append(Crlf);
-            sb.Append("| Spec | Folder | Status | Forks decided / revisit / open | Open ends | Targets unset | CPU budget |").Append(Crlf);
-            sb.Append("| --- | --- | --- | --- | --- | --- | --- |").Append(Crlf);
+            sb.Append("| Spec | Folder | Status | Approved | Forks decided / revisit / open | Open ends | Targets unset | CPU budget |").Append(Crlf);
+            sb.Append("| --- | --- | --- | --- | --- | --- | --- | --- |").Append(Crlf);
             for (int i = 0; i < count; i++)
             {
                 SpecRow row = rows[i];
@@ -1003,6 +1003,7 @@ namespace _Build
                 string status = !template ? "Old shape" : row.soft ? "Soft" : row.open + row.openEnds > 0 ? "Open" : row.revisit > 0 ? "Revisit" : "Complete";
                 string budget = !budgets.TryGetValue(row.name, out BudgetCount b) ? "-" : b.set == b.rows ? "set" : b.set == 0 ? "unset" : "partly";
                 sb.Append("| [[").Append(row.name).Append("]] | ").Append(row.folder).Append(" | ").Append(status).Append(" | ")
+                    .Append(row.approved ? "yes" : "no").Append(" | ")
                     .Append(row.decided).Append(" / ").Append(row.revisit).Append(" / ").Append(row.open).Append(" | ")
                     .Append(template ? row.openEnds.ToString() : "-").Append(" | ")
                     .Append(template ? row.unsetTargets.ToString() : "-").Append(" | ")
@@ -1029,6 +1030,13 @@ namespace _Build
         {
             SpecRow row = default;
             List<string> lines = SplitLines(text);
+            int close = ClosingFence(lines);
+            for (int i = 1; i < close; i++)
+            {
+                string bare = Bare(lines[i]);
+                if (bare.StartsWith("Approved:", StringComparison.Ordinal)) row.approved = bare.Substring(9).Trim() == "true";
+            }
+
             string section = "";
             bool fenced = false, inTable = false;
             for (int i = 0; i < lines.Count; i++)
@@ -1248,6 +1256,7 @@ namespace _Build
         {
             public string name;
             public string folder;
+            public bool approved;
             public bool soft;
             public bool hasTargets;
             public bool nowEnd;

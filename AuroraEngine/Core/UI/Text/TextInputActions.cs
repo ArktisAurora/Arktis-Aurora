@@ -5,6 +5,7 @@ using ArctisAurora.Core.UI.Menus;
 using ArctisAurora.Core.UI.Notes;
 using ArctisAurora.Core.UI.Tex;
 using ArctisAurora.EngineWork;
+using ArctisAurora.EngineWork.Rendering;
 using System.Numerics;
 using Image = Arctis.Imaging.Image;
 
@@ -470,11 +471,13 @@ namespace ArctisAurora.Core.UI.Text
             if (editor == null) return;
 
             PageLayout? current = editor.ViewedPage;
-            WindowRoot? root = UIEngine.WindowOf(editor)?.ui.uiRoot;
+            RenderWindow? window = UIEngine.WindowOf(editor);
+            WindowRoot? root = window?.ui.uiRoot;
             if (current == null || root == null) return;
 
             LayoutRect rect = root.arrangedRect;
-            ContextMenus.Open(DocumentToolbarControl.ViewSizeEntries(editor, current), editor, new Vector2(rect.x + rect.width * 0.5f, rect.y + rect.height * 0.5f));
+            Vector2 point = window!.isInWindow ? root.ToDesignSpace(window.mousePos, window.os.windowSize) : new Vector2(rect.x + rect.width * 0.5f, rect.y + rect.height * 0.5f);
+            ContextMenus.Open(DocumentToolbarControl.ViewSizeEntries(editor, current), editor, point);
         }
 
         [A_XSDActionDependency("Notes.EncryptBlocks", "Input", "Asks for a password and encrypts the paragraphs and tables the selection touches")]

@@ -4,6 +4,7 @@ using ArctisAurora.Core.UI.Controls;
 using ArctisAurora.Core.UI.Document;
 using ArctisAurora.Core.UI.Text;
 using ArctisAurora.EngineWork;
+using Silk.NET.GLFW;
 using System.Globalization;
 
 namespace ArctisAurora.Core.UI.Notes
@@ -17,6 +18,7 @@ namespace ArctisAurora.Core.UI.Notes
         private const float paletteWidth = 180f;
         private const float rowHeight = 22f;
         private const float iconSize = 12f;
+        private const float fieldInset = 6f;
 
         private const string appPalette = "App default";
 
@@ -52,9 +54,13 @@ namespace ArctisAurora.Core.UI.Notes
                 selected = document.palette ?? appPalette,
                 preferredWidth = paletteWidth,
                 preferredHeight = rowHeight,
-                role = PaletteRole.Field
+                role = PaletteRole.Field,
+                edgeThickness = new Thickness(1f),
+                edgeRole = PaletteRole.Line,
+                cornerRole = CornerRole.Control
             };
             palette.onPicked = picked => editor.SetPalette(picked == appPalette ? null : picked);
+            ShowHandOver(palette);
             Row("Palette", palette);
 
             DocumentLayout layout = document.layout;
@@ -63,8 +69,15 @@ namespace ArctisAurora.Core.UI.Notes
             Row("List indent", Number(layout.listIndent, 0f, (l, v) => l.listIndent = v));
             Row("List markers", Field(string.Join(", ", layout.listLevels.Select(l => l.marker)), SetListMarkers));
 
-            CheckBoxControl locked = new CheckBoxControl { isChecked = document.readOnly };
+            CheckBoxControl locked = new CheckBoxControl
+            {
+                isChecked = document.readOnly,
+                role = PaletteRole.Field,
+                edgeThickness = new Thickness(1f),
+                edgeRole = PaletteRole.Line
+            };
             locked.onChanged = editor.SetReadOnly;
+            ShowHandOver(locked);
             Row("Read only", locked);
 
             if (!markdown) return;
@@ -127,7 +140,11 @@ namespace ArctisAurora.Core.UI.Notes
                 text = text,
                 fontSize = captionSize,
                 preferredHeight = rowHeight,
-                role = PaletteRole.Field
+                role = PaletteRole.Field,
+                padding = new Thickness(fieldInset, 0f),
+                edgeThickness = new Thickness(1f),
+                edgeRole = PaletteRole.Line,
+                cornerRole = CornerRole.Control
             };
 
             string shown = text;
@@ -168,8 +185,15 @@ namespace ArctisAurora.Core.UI.Notes
 
             if (!entry.list && entry.value is "true" or "false")
             {
-                CheckBoxControl box = new CheckBoxControl { isChecked = entry.value == "true" };
+                CheckBoxControl box = new CheckBoxControl
+                {
+                    isChecked = entry.value == "true",
+                    role = PaletteRole.Field,
+                    edgeThickness = new Thickness(1f),
+                    edgeRole = PaletteRole.Line
+                };
                 box.onChanged = value => editor.SetFrontmatterValue(key, value ? "true" : "false");
+                ShowHandOver(box);
                 return box;
             }
 
@@ -232,11 +256,21 @@ namespace ArctisAurora.Core.UI.Notes
                 preferredWidth = width,
                 preferredHeight = rowHeight,
                 role = PaletteRole.Chrome,
-                cornerRole = CornerRole.Control
+                cornerRole = CornerRole.Control,
+                edgeThickness = new Thickness(1f),
+                edgeRole = PaletteRole.Line
             };
             button.AddChild(face);
             button.RegisterOnRelease(_ => { pressed(); return true; });
+            ShowHandOver(button);
             return button;
+        }
+
+        // The hand cursor while the pointer is over a pressable part.
+        private static void ShowHandOver(ButtonControl control)
+        {
+            control.RegisterOnEnter(_ => { UIEngine.WindowOf(control)?.os.ChangeCursor(CursorShape.Hand); return false; });
+            control.RegisterOnExit(_ => { UIEngine.WindowOf(control)?.os.ChangeCursor(CursorShape.Arrow); return false; });
         }
 
         // Several controls side by side in one row's value slot.
@@ -269,6 +303,27 @@ namespace ArctisAurora.Core.UI.Notes
         private class PropertyRow : StackPanelControl
         {
             public override bool takesActiveControl => false;
+
+            // A text cursor over a field, the arrow elsewhere in the row.
+            public override bool OnPointerEnter(PointerEvent e)
+            {
+                UIEngine.WindowOf(this)?.os.ChangeCursor(IsInField(e.target) ? CursorShape.IBeam : CursorShape.Arrow);
+                return base.OnPointerEnter(e);
+            }
+
+            public override bool OnPointerExit(PointerEvent e)
+            {
+                UIEngine.WindowOf(this)?.os.ChangeCursor(CursorShape.Arrow);
+                return base.OnPointerExit(e);
+            }
+
+            private bool IsInField(Control? control)
+            {
+                for (; control != null && !ReferenceEquals(control, this); control = control.parent as Control)
+                    if (control is TextBoxControl) return true;
+
+                return false;
+            }
         }
         #endregion
     }
